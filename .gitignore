@@ -1,0 +1,9 @@
+# App
+attack_vector.json
+
+# Python
+.venv/
+*.pyc
+
+# PyCharm
+.idea/
