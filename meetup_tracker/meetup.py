@@ -15,24 +15,23 @@ class Meetup:
         self._attack_vector = AttackVector()
 
     def track(self):
-        self._login()
+        page_url = self._attack_vector.get_seed_url()
+        self._login(page_url)
 
         groups = self._get_groups()
         for group in groups[:1]:
             print(f"Group: {group}")
-            self._driver.get(group)
-
-            events = self._get_events()
+            events = self._get_events(group)
             for event in events[:2]:
                 print(f"Event: {event}")
+
                 self._driver.get(event)
 
                 if self._is_event_cancelled():
                     continue
 
-    def _login(self):
-        page_url = self._attack_vector.get_seed_url()
-        self._driver.get(page_url)
+    def _login(self, url):
+        self._driver.get(url)
         assert self._driver.title == "Login to Meetup | Meetup", f"Unexpected page title: '{self._driver.title}'"
 
         login = self._driver.find_element_by_id("email")
@@ -51,7 +50,9 @@ class Meetup:
         groups = groups_list.find_elements(by=By.CLASS_NAME, value="D_name")
         return [group.find_element(by=By.TAG_NAME, value="a").get_attribute("href") for group in groups]
 
-    def _get_events(self):
+    def _get_events(self, group_url):
+        self._driver.get(group_url)
+
         WebDriverWait(self._driver, 30) \
             .until(EC.presence_of_element_located((By.CLASS_NAME, "groupHome-eventsList-upcomingEventsLink")))
 
