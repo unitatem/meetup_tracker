@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
@@ -19,13 +20,18 @@ class Meetup:
         self._login(page_url)
 
         groups = self._get_groups()
-        for group in groups[:1]:
+        for group in groups:
             print(f"Group: {group}")
+            if self._is_it_private(group):
+                print("Private group")
+                continue
+
             events = self._get_events(group)
-            for event in events[:2]:
+            for event in events:
                 print(f"Event: {event}")
                 attendees = self._get_attendees(event)
-                print(attendees)
+                if attendees is not None and self._attack_vector.get_name() in attendees:
+                    print(f"HIT on event: {event}")
 
     def _login(self, url):
         self._driver.get(url)
@@ -50,8 +56,12 @@ class Meetup:
     def _get_events(self, group_url):
         self._driver.get(group_url)
 
-        WebDriverWait(self._driver, 30) \
-            .until(EC.presence_of_element_located((By.CLASS_NAME, "groupHome-eventsList-upcomingEventsLink")))
+        try:
+            WebDriverWait(self._driver, 30) \
+                .until(EC.presence_of_element_located((By.CLASS_NAME, "groupHome-eventsList-upcomingEventsLink")))
+        except TimeoutException:
+            print("No future events")
+            return []
 
         self._driver.find_element(by=By.CLASS_NAME, value="groupHome-eventsList-upcomingEventsLink").click()
 
@@ -78,3 +88,10 @@ class Meetup:
             .until(EC.presence_of_element_located((By.CLASS_NAME, "eventTimeDisplay")))
         elements = self._driver.find_elements(by=By.CLASS_NAME, value="eventTimeDisplay-canceled")
         return len(elements) == 1
+
+    def _is_it_private(self, url):
+        self._driver.get(url)
+        WebDriverWait(self._driver, 30) \
+            .until(EC.presence_of_element_located((By.CLASS_NAME, "group-description")))
+        elements = self._driver.find_elements(by=By.CLASS_NAME, value="privateCard--lock")
+        return len(elements) != 0
