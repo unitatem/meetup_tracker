@@ -23,9 +23,12 @@ class Meetup:
             group.click()
 
             events = self._get_events()
-            for event in events[:1]:
+            for event in events[:2]:
                 print("Event name: " + event.text.split("\n")[0])
                 event.click()
+
+                if self._is_event_cancelled():
+                    continue
 
     def _login(self):
         page_url = self._attack_vector.get_seed_url()
@@ -58,3 +61,9 @@ class Meetup:
             .until(EC.presence_of_element_located((By.CLASS_NAME, "list--infinite-scroll")))
         events_list = self._driver.find_element(by=By.CLASS_NAME, value="list--infinite-scroll")
         return events_list.find_elements(by=By.CLASS_NAME, value="card")
+
+    def _is_event_cancelled(self):
+        WebDriverWait(self._driver, 30) \
+            .until(EC.presence_of_element_located((By.CLASS_NAME, "eventTimeDisplay")))
+        elements = self._driver.find_elements(by=By.CLASS_NAME, value="eventTimeDisplay-canceled")
+        return len(elements) == 1
